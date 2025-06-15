@@ -12,23 +12,57 @@ function formatHour(hour) {
   return `${hour} AM`
 }
 
-const getCoordinatesFromCourtNames = async (courtNames, API_KEY) => {
-  const results = []
+const getCoordinatesFromCourtNames = async (courtNames) => {
+  try {
+    const res = await fetch('http://localhost:3001/api/geocode-courts', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ courtNames }),
+    })
 
-  for (const name of courtNames) {
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(name)}&key=${API_KEY}`
-    const res = await fetch(url)
     const json = await res.json()
-    if (json.status === 'OK') {
-      const { lat, lng } = json.results[0].geometry.location
-      results.push({ name, lat, lng })
-    } else {
-      console.warn(`Could not geocode: ${name}`, json.status)
+    if (json.status !== 'OK') {
+      console.error("Geocoding API error:", json)
+      return null
     }
-  }
 
-  return results
+    return json.results
+  } catch (error) {
+    console.error("Error calling backend:", error)
+    return null
+  }
 }
+
+// const getCoordinatesFromCourtNames = async (courtNames, API_KEY) => {
+//   const results = []
+
+//   for (const name of courtNames) {
+//     console.log(`Geocoding: ${name}`)
+//     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(name)}&key=${API_KEY}`
+//     console.log("Geocoding URL:", url)
+//     const res = await fetch(url)
+//     const json = await res.json()
+//     if (json.status === 'OK') {
+//       const { lat, lng } = json.results[0].geometry.location
+//       results.push({ name, lat, lng })
+//     } else if (json.status === 'ZERO_RESULTS') {
+//       const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(name + ', North Carolina')}&key=${API_KEY}`
+//       console.log("Place Search URL:", url)
+//       const res = await fetch(url)
+//       const json = await res.json()
+//       if (json.status === 'OK') {
+//         const { lat, lng } = json.results[0].geometry.location
+//         results.push({ name, lat, lng })
+//       } else {
+//         console.warn(`Could not geocode: ${name}`, json.status)
+//       }
+//     }
+//   }
+
+//   return results
+// }
 
 const getClosestCourtByTravelTime = async (userLocation, courtCoords) => {
   try {
@@ -88,7 +122,7 @@ function App() {
       console.log("Raw data from DB:", data)
       const courtNames = data.map(court => court.COURTS)
       console.log("Court names:", courtNames)
-      getCoordinatesFromCourtNames(courtNames, API_KEY).then(courtCoords => {
+          getCoordinatesFromCourtNames(courtNames).then(courtCoords => {
         console.log('Court Coordinates:', courtCoords)
 
          getClosestCourtByTravelTime(userLocation, courtCoords).then(court => {

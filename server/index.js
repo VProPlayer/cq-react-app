@@ -3,7 +3,8 @@ import { Pool } from 'pg'
 import cors from 'cors'
 import dotenv from 'dotenv'
 
-dotenv.config({path: './.env-backend'})
+
+dotenv.config({path: './.env'})
 
 const app = express()
 app.use(cors())
@@ -40,6 +41,48 @@ app.post('/api/closest-court', async (req, res) => {
   }
 })
 
+app.post('/api/geocode-courts', async (req, res) => {
+  try {
+    const { courtNames } = req.body
+    console.log("Received courtNames from frontend:", courtNames)
+    const results = []
+
+    for (const name of courtNames) {
+      const query = `${name}, North Carolina`
+      let geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${process.env.GOOGLE_MAPS_API_KEY}`
+      console.log(`Trying Geocode API: ${geocodeUrl}`)
+      // First try: Geocoding API
+      
+      let response = await fetch(geocodeUrl)
+      let json = await response.json()
+
+      if (json.status === 'OK') {
+        const { lat, lng } = json.results[0].geometry.location
+        results.push({ name, lat, lng })
+        continue
+      }
+
+      // Fallback: Places Text Search API
+      console.warn(`Geocode failed for ${name}, status: ${json.status}, fallback to Places API`)
+      let placeUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${process.env.GOOGLE_MAPS_API_KEY}`
+      console.log(`Trying Places API: ${placeUrl}`)
+      response = await fetch(placeUrl)
+      json = await response.json()
+
+      if (json.status === 'OK') {
+        const { lat, lng } = json.results[0].geometry.location
+        results.push({ name, lat, lng })
+      } else {
+        console.warn(`Could not geocode: ${name} → ${json.status}`)
+      }
+    }
+    console.log("Final geocoded results:", results)
+    res.json(results)
+  } catch (error) {
+    console.error('Geocoding route error:', error)
+    res.status(500).send('Error geocoding court names')
+  }
+})
 app.listen(3001, () => {
   console.log('Server running on http://localhost:3001')
 })
