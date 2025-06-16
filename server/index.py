@@ -42,34 +42,86 @@ def closest_court():
         if not user or not courts:
             return jsonify({"error": "Missing userLocation or courts"}), 400
 
-        destinations = "|".join([f"{c['lat']},{c['lng']}" for c in courts])
-        url = (
-            f"https://maps.googleapis.com/maps/api/distancematrix/json?"
-            f"origins={user['latitude']},{user['longitude']}&"
-            f"destinations={destinations}&departure_time=now&traffic_model=best_guess&"
-            f"key={os.getenv('GOOGLE_MAPS_API_KEY')}"
-        )
-
-        print("Requesting matrix with URL", url)
-        headers = {'Accept': 'application/json'}
-        res = requests.get(url, headers=headers)
-        matrix = res.json()
-        print("Distance Matrix API response:", matrix)
-
         enriched = []
-        for i, court in enumerate(courts):
-            element = matrix["rows"][0]["elements"][i]
-            enriched.append({
-                **court,
-                "distance_text": element.get("distance", {}).get("text"),
-                "distance_value": element.get("distance", {}).get("value"),
-                "duration_text": element.get("duration_in_traffic", {}).get("text"),
-                "duration_value": element.get("duration_in_traffic", {}).get("value")
-            })
+        for court in courts:
+            try:
+                compute_url = f"https://routes.googleapis.com/directions/v2:computeRoutes?key={os.getenv('GOOGLE_MAPS_API_KEY')}"
+                payload = {
+                    "origin": {
+                        "location": {
+                            "latLng": {
+                                "latitude": float(user["latitude"]),
+                                "longitude": float(user["longitude"])
+                            }
+                        }
+                    },
+                    "destination": {
+                        "location": {
+                            "latLng": {
+                                "latitude": float(court["lat"]),
+                                "longitude": float(court["lng"])
+                            }
+                        }
+                    },
+                    "travelMode": "DRIVE",
+                    "routingPreference": "TRAFFIC_AWARE"
+                }
+                headers = {
+                    "Content-Type": "application/json",
+                    "X-Goog-Api-Key": os.getenv("GOOGLE_MAPS_API_KEY"),
+                    "X-Goog-FieldMask": "routes.duration,routes.distanceMeters,routes.staticDuration,routes.description"
+                }
+                res = requests.post(compute_url, headers=headers, json=payload)
+                route_data = res.json()
+                print("Type of route_data:", type(route_data))
+                
+
+                if "routes" in route_data and route_data["routes"]:
+                    route = route_data["routes"][0]
+
+                    distance_value = route.get("distanceMeters")
+                    duration_str = route.get("duration", "0s")
+                    static_duration_str = route.get("staticDuration", "0s")
+                    description = route.get("description", "")
+
+                    try:
+                        duration_value = int(duration_str.replace("s", ""))
+                    except Exception:
+                        duration_value = 0
+
+                    try:
+                        static_duration_value = int(static_duration_str.replace("s", ""))
+                    except Exception:
+                        static_duration_value = 0
+
+                    enriched.append({
+                        **court,
+                        "distance_value": distance_value,
+                        "duration_value": duration_value,
+                        "static_duration_value": static_duration_value,
+                        "description": description
+                    })
+                else:
+                    enriched.append({
+                        **court,
+                        "distance_value": None,
+                        "duration_value": None,
+                        "static_duration_value": None,
+                        "description": None
+                    })
+            except Exception as e:
+                print(f"Error processing court {court.get('name', 'unknown')}: {e}")
+                enriched.append({
+                    **court,
+                    "distance_value": None,
+                    "duration_value": None,
+                    "static_duration_value": None,
+                    "description": None
+                })
 
         return jsonify(enriched)
     except Exception as e:
-        print("Distance matrix error:", e)
+        print("Routes Compute API error:", e)
         return jsonify({"error": "Error calculating distance"}), 500
     
 
