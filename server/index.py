@@ -58,68 +58,75 @@ def closest_court():
                     "destination": {
                         "location": {
                             "latLng": {
-                                "latitude": float(court["lat"]),
-                                "longitude": float(court["lng"])
+                                "latitude": float(court[3]),
+                                "longitude": float(court[4])
                             }
                         }
                     },
                     "travelMode": "DRIVE",
-                    "routingPreference": "TRAFFIC_AWARE"
+                    "routingPreference": "TRAFFIC_AWARE_OPTIMAL"
                 }
                 headers = {
                     "Content-Type": "application/json",
                     "X-Goog-Api-Key": os.getenv("GOOGLE_MAPS_API_KEY"),
-                    "X-Goog-FieldMask": "routes.duration,routes.distanceMeters,routes.staticDuration,routes.description"
+                    "X-Goog-FieldMask": "routes.duration,routes.distanceMeters,routes.staticDuration"
                 }
                 res = requests.post(compute_url, headers=headers, json=payload)
                 route_data = res.json()
-                print("Type of route_data:", type(route_data))
-                
+                print("Route data received:", route_data)
 
-                if "routes" in route_data and route_data["routes"]:
-                    route = route_data["routes"][0]
+            
+                #print("Type of route_data:", type(route_data))
 
-                    distance_value = route.get("distanceMeters")
-                    duration_str = route.get("duration", "0s")
-                    static_duration_str = route.get("staticDuration", "0s")
-                    description = route.get("description", "")
 
-                    try:
-                        duration_value = int(duration_str.replace("s", ""))
-                    except Exception:
-                        duration_value = 0
+        #         if "routes" in route_data and route_data["routes"]:
+        #             route = route_data["routes"][0]
 
-                    try:
-                        static_duration_value = int(static_duration_str.replace("s", ""))
-                    except Exception:
-                        static_duration_value = 0
+        #             distance_value = route.get("distanceMeters")
+        #             duration_str = route.get("duration", "0s")
+        #             static_duration_str = route.get("staticDuration", "0s")
+        #             description = route.get("description", "")
 
-                    enriched.append({
-                        **court,
-                        "distance_value": distance_value,
-                        "duration_value": duration_value,
-                        "static_duration_value": static_duration_value,
-                        "description": description
-                    })
-                else:
-                    enriched.append({
-                        **court,
-                        "distance_value": None,
-                        "duration_value": None,
-                        "static_duration_value": None,
-                        "description": None
-                    })
+        #             try:
+        #                 duration_value = int(duration_str.replace("s", ""))
+        #             except Exception:
+        #                 duration_value = 0
+
+        #             try:
+        #                 static_duration_value = int(static_duration_str.replace("s", ""))
+        #             except Exception:
+        #                 static_duration_value = 0
+
+        #             enriched.append({
+        #                 **court,
+        #                 "distance_value": distance_value,
+        #                 "duration_value": duration_value,
+        #                 "static_duration_value": static_duration_value,
+        #                 "description": description
+        #             })
+        #         else:
+        #             enriched.append({
+        #                 **court,
+        #                 "distance_value": None,
+        #                 "duration_value": None,
+        #                 "static_duration_value": None,
+        #                 "description": None
+        #             })
             except Exception as e:
-                print(f"Error processing court {court.get('name', 'unknown')}: {e}")
-                enriched.append({
-                    **court,
-                    "distance_value": None,
-                    "duration_value": None,
-                    "static_duration_value": None,
-                    "description": None
-                })
+                print("test error")
+                #print(court)
+                print("Error processing court:", e)
+                print(len(court))
+                #print(f"Error processing court {court.get('name', 'unknown')}: {e}")
+                # enriched.append({
+                #     **court,
+                #     "distance_value": None,
+                #     "duration_value": None,
+                #     "static_duration_value": None,
+                #     "description": None
+                # })
 
-        return jsonify(enriched)
+        return jsonify(route_data)
     except Exception as e:
         print("Routes Compute API error:", e)
         return jsonify({"error": "Error calculating distance"}), 500
