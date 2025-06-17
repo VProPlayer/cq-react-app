@@ -109,5 +109,18 @@ def closest_court():
         print("Routes Compute API error:", e)
         return jsonify({"error": "Error calculating distance"}), 500
     
+    def algorithm(sorted_distance_route_data, sorted_duration_route_data):
+        # Get top 3 closest courts by distance
+        top_3_distance = sorted_distance_route_data[:3]
+        
+        # Get top 3 fastest courts by duration
+        top_3_duration = sorted_duration_route_data[:3]
+        
+        return {
+            "top_3_by_distance": top_3_distance,
+            "top_3_by_duration": top_3_duration
+        }
+
+    
 if __name__ == "__main__":
     app.run(port=3001, debug=True)
