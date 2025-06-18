@@ -11,21 +11,27 @@ function App() {
   const [userLocation, setUserLocation] = useState(null)
 
 
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        position => {
-          const { latitude, longitude } = position.coords
-          setUserLocation({ latitude, longitude })
-        },
-        error => {
-          console.error("Error getting user location:", error)
-        }
-      )
-    } else {
-      console.error("Geolocation is not supported by this browser.")
-    }
-  }, [])
+useEffect(() => {
+  // Toggle between geolocation and custom coordinates
+
+  // Option 1: Use geolocation (default)
+  const useGeolocation = false;
+
+  if (useGeolocation && navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation({ latitude, longitude });
+      },
+      error => {
+        console.error("Error getting user location:", error);
+      }
+    );
+  } else {
+    // Option 2: Use custom coordinates (uncomment and set your values)
+    setUserLocation({ latitude: num, longitude: -num });
+  }
+}, []);
 
   useEffect(() => {
     if (!userLocation) return;
