@@ -1,5 +1,5 @@
 *{
-  background-color: white;
+  /* background-color: white; */
 }
 
 button{
@@ -11,6 +11,12 @@ button{
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+}
+
+.map-container {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
 }
 
 .logo {

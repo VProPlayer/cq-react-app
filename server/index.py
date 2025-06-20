@@ -26,6 +26,7 @@ def get_data():
         with conn.cursor() as cursor:
             cursor.execute("SELECT * FROM court_busy_data")
             rows = cursor.fetchall()
+            #print("Fetched rows:", len(rows))  # Debugging line to check fetched data
             return jsonify(rows)
     except Exception as e:
         print("Database error:", e)
@@ -37,6 +38,7 @@ def closest_court():
         return jsonify({"error": "Invalid content-type, expecting application/json"}), 400
     try:
         data = request.get_json()
+        #print("Received data:", data)  # Debugging line to check received data
         user = data.get("userLocation")
         courts = data.get("courts")
 
@@ -45,8 +47,11 @@ def closest_court():
 
         enriched = []
         for court in courts:
+            #print("Processing court:", court)  # Debugging line to check each court
+            if len(court) < 5:
+                print("Court data too short:", court)
             try:
-                compute_url = f"https://routes.googleapis.com/directions/v2:computeRoutes?key={os.getenv('GOOGLE_MAPS_API_KEY')}"
+                compute_url = f"https://routes.googleapis.com/directions/v2:computeRoutes?key={os.getenv('VITE_GOOGLE_MAPS_API_KEY')}"
                 payload = {
                     "origin": {
                         "location": {
@@ -74,6 +79,7 @@ def closest_court():
                 }
                 res = requests.post(compute_url, headers=headers, json=payload)
                 route_data = res.json()
+                #print("Route data:", route_data)  # Debugging line to check route data
                 if "routes" in route_data and isinstance(route_data["routes"], list) and len(route_data["routes"]) > 0:
                     route = route_data["routes"][0]
                     distance = route.get("distanceMeters")
@@ -145,8 +151,8 @@ def algorithm(sorted_duration_route_data):
     ]
     least_busy = min(courts_with_busyness, key=lambda x: x["busyness"])
     # debug
-    # print("Court object (fastest):", fastest)
-    # print("Court object (least busy):", least_busy["court"])
+    print("Court object (fastest):", fastest)
+    print("Court object (least busy):", least_busy["court"])
     # print("Fastest court name:", fastest.get("Court Name"))
     # print("Least busy court name:", least_busy["court"].get("Court Name"))
     # print("Second fastest court name:", second_fastest.get("Court Name"))
@@ -160,8 +166,10 @@ def algorithm(sorted_duration_route_data):
     # busy_least = get_busyness(least_busy["court"])
     return {
         # "recommended": fastest,
-        "fastest": fastest.get("Court Name"),
-        "least_busy": least_busy["court"].get("Court Name"),
+        #"fastest": fastest.get("Court Name"),
+        "fastest": fastest,
+        "least_busy": least_busy["court"],
+        #"least_busy": least_busy["court"].get("Court Name"),
         # "busy_fastest": busy_fastest,
         # "busy_least": busy_least
     }
