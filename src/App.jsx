@@ -3,7 +3,7 @@ import CourtsList from "./components/CourtsList";
 import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
 import {createRoot} from "react-dom/client";
 //import { GoogleMap, LoadScript } from '@react-google-maps/api';
-//import './App.css'
+import './App.css'
 
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
@@ -16,6 +16,14 @@ const containerStyle = {
   left: 0,
   zIndex: -1,
 };
+
+// const startButtonWrapperStyle = {
+//   position: 'fixed',
+//   bottom: '130px',
+//   left: '50%',
+//   transform: 'translateX(-50%)',
+//   zIndex: 10,
+// };
 
 function App() {
   const [data, setData] = useState(null)
@@ -45,7 +53,7 @@ useEffect(() => {
     );
   } else {
     // Option 2: Use custom coordinates (uncomment and set your values)
-    setUserLocation({ latitude: num, longitude: -num });
+    setUserLocation({ latitude: 35.822012, longitude: -78.858422 });
   }
 }, []);
 
@@ -83,11 +91,7 @@ console.log("mapRef.current.constructor.name:", mapRef.current?.constructor?.nam
 }, [userLocation, recommendedCourt, mapRef.current]);
 
   useEffect(() => {
-    // if(!loading){
-    //   // make sure the splashscreen doesn't show when done loading
-    //   const timeout = setTimeout(() => setScreen("main"),1000);
-    //   return clearTimeout(timeout);
-    // }
+    if (screen !== "main") return;
     if (!userLocation) return;
 
     // Fetch court data with lat/lng
@@ -122,7 +126,7 @@ console.log("mapRef.current.constructor.name:", mapRef.current?.constructor?.nam
       setError("Failed to load court data")
       setLoading(false)
     })
-}, [userLocation])
+}, [userLocation, screen])
   
   // Handler for GoogleMap onLoad event
   const onLoad = (map) => {
@@ -140,8 +144,22 @@ console.log("mapRef.current.constructor.name:", mapRef.current?.constructor?.nam
               zoom={18}
               center={{ lat: userLocation.latitude, lng: userLocation.longitude }}
               onLoad={onLoad}
+              options={{
+                disableDefaultUI: true,
+                zoomControl: false,
+                mapTypeControl: false,
+                streetViewControl: false,
+                fullscreenControl: false,
+              }}
             >
-              <Marker position={{ lat: userLocation.latitude, lng: userLocation.longitude }} />
+              <Marker 
+                position={{ lat: userLocation.latitude, lng: userLocation.longitude }} 
+                icon={{
+                  url: '/blue-pulse.svg',
+                  scaledSize: new window.google.maps.Size(40, 40),
+                  anchor: new window.google.maps.Point(20, 20),
+                }}
+              />
               {recommendedCourt && (
                 <>
                   <Marker
@@ -149,26 +167,27 @@ console.log("mapRef.current.constructor.name:", mapRef.current?.constructor?.nam
                       lat: recommendedCourt.fastest.Latitude,
                       lng: recommendedCourt.fastest.Longitude,
                     }}
-                    title={`Fastest: ${recommendedCourt.fastest["Court Name"]}`}
-                    label="Fastest"
+                    title={`Closest: ${recommendedCourt.fastest["Court Name"]}`}
+                    label="Closest Court"
+                    icon="http://maps.google.com/mapfiles/ms/icons/red-dot.png"
                   />
                   <Marker
                     position={{
                       lat: recommendedCourt.least_busy.Latitude,
                       lng: recommendedCourt.least_busy.Longitude,
                     }}
-                    title={`Least Busy: ${recommendedCourt.least_busy["Court Name"]}`}
-                    label="Least Busy"
+                    title={`Recommended: ${recommendedCourt.least_busy["Court Name"]}`}
+                    label="Recommended Court"
+                    icon="http://maps.google.com/mapfiles/ms/icons/green-dot.png"
                   />
                 </>
               )}
             </GoogleMap>
           </div>
         )}
-        <div>
-          {/* {data && <CourtsList courts={data} />} */}
-          <button>Start Your Quest</button>
-        </div>
+  <div className="start-button-wrapper">
+    <button className="glassy-button" onClick={() => setScreen("main")}>Start Your Quest</button>
+  </div>
       </div>
     </LoadScript>
   )
